@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "SDL/SDL.h"
+#include "Node.h"
 using namespace std;
 
 class Tile {
@@ -18,7 +19,7 @@ class Tile {
 		int get_type(int,int);
 		void set_type(int,int,int);
 		void draw(SDL_Surface*,SDL_Surface*);
-		void redraw(int, int,int,SDL_Surface*,SDL_Surface*);
+		void redraw(int,SDL_Surface*,SDL_Surface*);
 		
 	private:
 		SDL_Rect surface_box[192];
@@ -27,8 +28,10 @@ class Tile {
 		vector<int> temp;
 		vector<int> x_vector;
 		vector<int> y_vector;
+		vector<vector<Node> > node_game;
+		SDL_Rect clip[32];
 		vector<vector<int> > game;
-		SDL_Surface* sprite_sheet;
+		//SDL_Surface* sprite_sheet;
 };
 
 #endif
