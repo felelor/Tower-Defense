@@ -3,13 +3,17 @@
 #include "sprite.h"
 #include "Tower.h"
 #include "Tile.h"
+//#include "Node.h"
+#include "Typeset.h"
 #include <iostream>
 #include <string>
 #include <cmath>
 using namespace std;
 
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 580;
+const int WINDOW_WIDTH = 642;
+const int WINDOW_HEIGHT = 560;
+const int BUTTON_WIDTH=214;
+const int BUTTON_HEIGHT=80;
 const int TOWER_WIDTH=40;
 const int TOWER_HEIGHT=40;
 const int FLIP_VERTICAL = 1;
@@ -19,9 +23,9 @@ const int FRAMES_PER_SECOND = 20;
 //const int ROW_WIDTH = 12;
 
 sprite::sprite(){
-
+	TTF_Init();
 	SDL_Init(SDL_INIT_EVERYTHING);
-	sum=300;
+	sum=10000;
 }
 
 void sprite::play(){
@@ -40,34 +44,47 @@ void sprite::play(){
 	SDL_Surface* title_pic = load_image("Title.bmp"); //title stuff
 	//SDL_Surface* brick = SDL_LoadBMP("brick.bmp"); //background filler
 	//SDL_SetColorKey( sprite_sheet, SDL_SRCCOLORKEY, SDL_MapRGB(sprite_sheet->format, 255, 0, 255) ); //sets background(magenta) to transperant
-	//SDL_SetColorKey( dot, SDL_SRCCOLORKEY, SDL_MapRGB(dot->format, 255, 0, 255) );
+	SDL_SetColorKey( dot, SDL_SRCCOLORKEY, SDL_MapRGB(dot->format, 255, 0, 255) );
 	//SDL_SetColorKey( background, SDL_SRCCOLORKEY, SDL_MapRGB(background->format, 255, 0, 255) );
+	TTF_Font *font = NULL;
+	font = TTF_OpenFont( "OptimusPrincepsSemiBold.ttf", 22 );
+
+	Typeset writer(font);
 
 	//draw_sprite(background,screen,0, 0, 0, 0, 640, 480);//draw background
 	Tile Tester(0,0,-1,0);
 	Tester.set_tiles("field_1.txt",screen,background);
+	//cout << "Here" << endl;
+	writer.show(1,Tester,screen,background); // write title on buttons
 	SDL_Flip(screen);
-	draw_sprite(title_pic,screen,0,0,0,480,640,100);//draw title
+	//draw_sprite(title_pic,screen,0,0,0,480,640,100);//draw title
 
 	SDL_Event sprites;//event
 
-	//area where tower can be built
-	Tower build1; //tower class
-	build1.set_build_x(320);
-	build1.set_build_y(80); 
-
-	Tower build2; //tower class
-	build2.set_build_x(213);
-	build2.set_build_y(186);
-
-	Tower build3; //tower class
-	build3.set_build_x(320);
-	build3.set_build_y(345);  
-	//draw_sprite(dot,screen,270,0,x,y,20,20);
-
 	bool quit = true;
 	int startTicks = SDL_GetTicks(); 
+	tower_type = 0;
+	int state_anim = 0;
+	//int bulba_state = 1;
+	int why = 0, ex = 330;
    	while (quit){
+		//while(1){
+		animate(ex,why,dot,screen,background,Tester);
+		if((Tester.get_type((why/40), (ex/40)) !=40 && state_anim==0) || Tester.get_type((why/40), (ex/40)) == 41){
+			state_anim = 0;
+			if((Tester.get_type((why/40), (ex/40))) ==42){
+				state_anim = 1;
+				}
+			why+=10;
+			}
+		else{
+			ex+=10;
+			state_anim=1;
+			}
+			if(why>=480){
+				why=0;
+				}
+		//}
 		//SDL_FreeSurface(dot);
 		while (SDL_PollEvent(&sprites)){
          		if (sprites.type == SDL_QUIT){ //if x out is pressed close screen
@@ -78,49 +95,153 @@ void sprite::play(){
 					//get mouse coordinates
 					int x = sprites.button.x;
 					int y = sprites.button.y;
-					i = (y/40); // i and j components for the 2-d game board in Tester tile
-					j = (x/40);
+					if(y/40 <= 11){
+						i = (y/40); // i and j components for the 2-d game board in Tester tile
+						j = (x/40);
+						}
+					else{
+						i = 12; // this is to sginify the larger button row in map grid
+						j = (x/40);
+						}
 					
 					//Uint8 r,g,b;
 					//Uint32 bg = get_pixel32(background,x,y ); 		//finding colors...not needed now but cool
 					//SDL_GetRGB( bg, screen->format, &r, &g, &b );
-
-					if(Tester.get_type(i,j)==2){ //if click is on pre-determined area
-						draw_sprite(menu,screen,0,0,0,480,640,100);
+						//cout << i << " ' " << j<< endl;
+						//cout << "outside" << endl;
+					if(Tester.get_type(i,j)>=2 && Tester.get_type(i,j)!=10 && Tester.get_type(i,j)!=11 && Tester.get_type(i,j)!=12){ //if click is on pre-determined area
+						Tester.draw_sprite(background,screen,120,0,0,480, BUTTON_WIDTH, BUTTON_HEIGHT); //clear buttons
+						Tester.draw_sprite(background,screen,120,0,240,480, BUTTON_WIDTH, BUTTON_HEIGHT);
+						Tester.draw_sprite(background,screen,120,0,480,480, BUTTON_WIDTH, BUTTON_HEIGHT);
+						if( Tester.get_type(i,j)==2){ //starter purchase screen
+							writer.show(2,Tester,screen,background);
+							state = 0; // states how to handle textual display
+							}
+						else{ //evlolve/sell
+							writer.show(3,Tester,screen,background);
+							state = 1;
+							}
+						//draw_sprite(menu,screen,0,0,0,480,640,100);
 						SDL_Flip(screen);
-						int type = check_key(sprite_sheet,screen); //type of tower
-						
-						if(type == 1){
-							Tester.set_type(i,j,3); // sets game 2d to 3 sig bulbasaur
-							if(Tester.get_type(i,j+2) == 1){ // sees if the image needs to be flipped if on other side of path for display
-								Tester.redraw(i,j,1,screen,flipped_sprite);
+						//cout << "Before this is " << Tester.get_type(i,j) << endl;
+						int type = check_key(i,j,state,Tester); //type of tower
+						//cout << "OUt" << endl;
+						if(type == 4 && state >= 1){ //clear da tower if sold
+							Tester.set_type(i,j,2);
+							Tester.redraw(2,screen,background);
+							}
+						else if(type == 1){
+							if(Tester.get_type(i,j+2) == 1){ // sees if the image needs to be flipped if on other side of pa
+								tower_type = 4; //evolution state
+								if(evolution == 3){
+									tower_type = 18;
+										}
+								else if(evolution == 2){
+									tower_type = 16;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 14;
+									//bulba_state++;
+									} 
+								//cout << "tower is " << tower_type << endl;
+								Tester.set_type(i,j,tower_type); // sets game 2d to 4 sig flipped bulbasaur
+								Tester.redraw(tower_type,screen,flipped_sprite);
 								}
 
 							else{
-								Tester.redraw(i,j,0,screen,sprite_sheet);
+								tower_type = 3;
+								if(evolution == 3){
+									tower_type = 17;
+										}
+								else if(evolution == 2){
+									tower_type = 15;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 13;
+									//bulba_state++;
+									}
+								//cout << "tower is " << tower_type << endl;
+								Tester.set_type(i,j,tower_type); // sets game 2d to 3 sig bulbasaur
+								Tester.redraw(tower_type,screen,sprite_sheet);
 								}
+							sum -=100;
 						}
 						else if(type == 2){
-							Tester.set_type(i,j,4);
 							if(Tester.get_type(i,j+2) == 1){
-								Tester.redraw(i,j,1,screen,flipped_sprite);
+								tower_type = 6;
+								if(evolution == 3){
+									tower_type = 24;
+										}
+								else if(evolution == 2){
+									tower_type = 22;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 20;
+									//bulba_state++;
+									}
+								Tester.set_type(i,j,tower_type);
+								Tester.redraw(tower_type,screen,flipped_sprite);
 								}
 
 							else{
-								Tester.redraw(i,j,0,screen,sprite_sheet);
+								tower_type = 5;
+								if(evolution == 3){
+									tower_type = 23;
+										}
+								else if(evolution == 2){
+									tower_type = 21;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 19;
+									//bulba_state++;
+									}
+								Tester.set_type(i,j,tower_type);
+								Tester.redraw(tower_type,screen,sprite_sheet);
 								}
 						}
 						else if(type == 3){
-							Tester.set_type(i,j,5);
-							if(Tester.get_type(i,j+2) == 1){ // checks to see if path is to right
-								Tester.redraw(i,j,1,screen,flipped_sprite);
+							if(Tester.get_type(i,j+2) == 1){
+								tower_type = 8;
+								if(evolution == 3){
+									tower_type = 30;
+										}
+								else if(evolution == 2){
+									tower_type = 28;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 26;
+									//bulba_state++;
+									}
+								Tester.set_type(i,j,tower_type);
+								Tester.redraw(tower_type,screen,flipped_sprite);
 								}
 
 							else{
-								Tester.redraw(i,j,0,screen,sprite_sheet);
+								tower_type = 7;
+								if(evolution == 3){
+									tower_type = 29;
+										}
+								else if(evolution == 2){
+									tower_type = 27;
+									state++;
+									}
+								else if(evolution == 1){
+									tower_type = 25;
+									//bulba_state++;
+									}
+								Tester.set_type(i,j,tower_type);
+								Tester.redraw(tower_type,screen,sprite_sheet);
 								}
 						}
-						draw_sprite(title_pic,screen,0,0,0,480,640,100);
+						Tester.draw_sprite(background,screen,120,0,0,480, BUTTON_WIDTH, BUTTON_HEIGHT);
+						Tester.draw_sprite(background,screen,120,0,240,480, BUTTON_WIDTH, BUTTON_HEIGHT);
+						Tester.draw_sprite(background,screen,120,0,480,480, BUTTON_WIDTH, BUTTON_HEIGHT);
+						//draw_sprite(title_pic,screen,0,0,0,480,640,100);
 						SDL_Flip(screen);
 						cout << "Sum is " << sum << endl;
 						}
@@ -134,64 +255,116 @@ void sprite::play(){
 	SDL_FreeSurface(background);
    	SDL_FreeSurface(sprite_sheet);
 	SDL_FreeSurface(dot);
+	TTF_CloseFont( font );
+	TTF_Quit();
    	SDL_Quit();
 };
 
-//Rudimetary draw function...i think i'll be updating or removing it
-void sprite::draw_sprite(SDL_Surface* picture,SDL_Surface* screen, int pic_X, int pic_Y, int screen_X, int screen_Y, int width, int height){
-	//cout <<"In draw" << endl;
-	SDL_Rect pic_Rect;
-	pic_Rect.x = pic_X;
-   	pic_Rect.y = pic_Y;
-   	pic_Rect.w = width;
-   	pic_Rect.h = height;
 
-   	SDL_Rect screen_Rect;
-   	screen_Rect.x = screen_X;
-   	screen_Rect.y = screen_Y;
-   	screen_Rect.w = width;
-   	screen_Rect.h = height;
-	//cout<<"Before blit"<<endl;
-   	SDL_BlitSurface(picture, &pic_Rect, screen, &screen_Rect);
-	
-}
-
-int sprite::check_key(SDL_Surface* sprite_sheet,SDL_Surface* screen){
+int sprite::check_key(int eye, int jay, int state, Tile Tester){
 	// q will quit the menu
+	int i=0,j=0;
 	SDL_Event key_test;
+	//cout << "In this is " << Tester.get_type(eye,jay) << endl;
 	bool end = true;
 	while(end){
 		while(SDL_PollEvent(&key_test)){
 			if(key_test.type == SDL_KEYDOWN){
 				switch(key_test.key.keysym.sym){
-					case SDLK_1: 
-						//sprite_x=0; //bulbasaur
-						return 1;
-						end = false;
-						break;
-					case SDLK_2:
-						//sprite_x=132;
-						return 2;	//charmander
-						end = false;
-						break;
-					case SDLK_3:
-						//sprite_x=255;
-						return 3;	//squirtle
-						end = false;
-						break;
 					case SDLK_q:	//quit
 						return 0;
-						end = false;
+						end = false;   ///////////////////have a start button to start enemy wave
 						break;
 					}
 				}
+			else if(key_test.type == SDL_MOUSEBUTTONDOWN){
+				if(key_test.button.button == SDL_BUTTON_LEFT){
+					cout << "Here in button" << endl;
+					int x = key_test.button.x;
+					//cout << "Herin x button " << x << endl;
+					int y = key_test.button.y;
+					i = 12; // i and j components for the 2-d game board in Tester tile
+					//cout << "Here in i button " << i << endl;
+					j = (x/40);
+					//cout << "Here in j button " << j << endl;
+					//cout << "get da tye " << Tester.get_type(i,j) << endl;
+					//cout << "This thing is " << Tester.get_type(eye,jay) << endl;
+					if(Tester.get_type(i,j)==10){
+						if(Tester.get_type(eye,jay)==3 || Tester.get_type(eye,jay)==4){ // evolu to Ivysaur
+							evolution = 1;
+							return 1;
+							}
+						else if(Tester.get_type(eye,jay)==5 || Tester.get_type(eye,jay)==6){ //evolu to Charmeleon
+							evolution = 1;
+							return 2;
+							}
+						else if(Tester.get_type(eye,jay)==7 || Tester.get_type(eye,jay)==8){
+							evolution = 1;
+							return 3;
+							}
+						else if(Tester.get_type(eye,jay)==13 || Tester.get_type(eye,jay)==14){ //evolu to Venasaur
+							evolution = 2;
+							return 1;
+							}
+						else if(Tester.get_type(eye,jay)==19 || Tester.get_type(eye,jay)==20){ //evolu to charizard
+							evolution = 2;
+							return 2;
+							}
+						else if(Tester.get_type(eye,jay)==25 || Tester.get_type(eye,jay)==26){ //evolu to blastoise
+							evolution = 2;
+							return 3;
+							}
+						else if(Tester.get_type(eye,jay)==15 || Tester.get_type(eye,jay)==16){ //Super venasaur
+							evolution = 3;
+							return 1;
+							}
+						else if(Tester.get_type(eye,jay)==21 || Tester.get_type(eye,jay)==22){ // Super Charizard
+							evolution = 3;
+							return 2;
+							}
+						else if(Tester.get_type(eye,jay)==27 || Tester.get_type(eye,jay)==28){ //evolu to super blastoise
+							evolution = 3;
+							return 3;
+							}
+						else if(Tester.get_type(eye,jay)==17 || Tester.get_type(eye,jay)==18){ // Super vena maxed exit
+							//evolution = 3;
+							return 0;
+							}
+						else if(Tester.get_type(eye,jay)==23 || Tester.get_type(eye,jay)==24){ // Super Charizard maxed exit
+							//evolution = 3;
+							return 0;
+							}
+						else if(Tester.get_type(eye,jay)==29 || Tester.get_type(eye,jay)==30){ //Super blas maxed exit
+							//evolution = 2;
+							return 0;
+							}
+						evolution = 0;
+						return 1;
+						}
+					else if(Tester.get_type(i,j)==11){
+						if (state >=1 ){
+							return 4;
+							}
+						evolution = 0;
+						return 2;
+						}
+					else if(Tester.get_type(i,j)==12 && state==0){
+						evolution = 0;
+						return 3;
+						}
+					}
+				}
+					
 		}
 	}
 }
 
-void sprite::animate(int x,int y,SDL_Surface* dot,SDL_Surface* screen,SDL_Surface* background){ //Not used as of now
-		draw_sprite(background,screen,0, 0, 0, 0, 640, 480);//draw background
-		draw_sprite(dot, screen,0,0,x, y, 20, 20 );
+void sprite::animate(int x,int y,SDL_Surface* dot,SDL_Surface* screen,SDL_Surface* background,Tile Tester){ //Not used as of now
+		Tester.redraw(1,screen,background);//draw background
+		Tester.redraw(31,screen,background);
+		//SDL_Delay(1000);
+		Tester.draw_sprite(dot, screen,0,0,x, y, 20, 20 );
+		SDL_Flip(screen);
 	}
 
 SDL_Surface* sprite::load_image( std::string filename ){
